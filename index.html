@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Umbrix — Privacy-First Encryption</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ===== RESET & ROOT ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050810;
+  --bg2: #080d18;
+  --surface: rgba(12,20,40,0.7);
+  --surface2: rgba(20,35,65,0.5);
+  --blue: #0af;
+  --teal: #0fd;
+  --glow-blue: rgba(0,170,255,0.18);
+  --glow-teal: rgba(0,255,210,0.15);
+  --text: #e8f0ff;
+  --muted: #5a6a8a;
+  --border: rgba(0,170,255,0.15);
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --ease: cubic-bezier(0.16,1,0.3,1);
+}
+[data-theme="light"] {
+  --bg: #f0f4ff;
+  --bg2: #e4ecff;
+  --surface: rgba(255,255,255,0.75);
+  --surface2: rgba(220,235,255,0.7);
+  --text: #0a1020;
+  --muted: #5a6a8a;
+  --border: rgba(0,120,255,0.18);
+  --glow-blue: rgba(0,100,255,0.1);
+  --glow-teal: rgba(0,200,180,0.1);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-display);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  cursor: none;
+  transition: background 0.5s, color 0.5s;
+}
+
+/* ===== CUSTOM CURSOR ===== */
+#cursor {
+  position: fixed; width:12px; height:12px; border-radius:50%;
+  background: var(--blue); pointer-events:none; z-index:9999;
+  transform: translate(-50%,-50%); transition: transform 0.08s, opacity 0.3s;
+  mix-blend-mode: screen;
+}
+#cursor-ring {
+  position:fixed; width:36px; height:36px; border-radius:50%;
+  border:1px solid var(--blue); pointer-events:none; z-index:9998;
+  transform:translate(-50%,-50%); opacity:0.5;
+  transition: transform 0.18s var(--ease), width 0.2s, height 0.2s, opacity 0.3s;
+}
+body:hover #cursor { opacity:1; }
+
+/* ===== CANVAS BG ===== */
+#bg-canvas { position:fixed; inset:0; z-index:0; opacity:0.6; }
+
+/* ===== NAV ===== */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 48px;
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.4s, background 0.4s;
+}
+nav.scrolled { border-color: var(--border); background: rgba(5,8,16,0.85); }
+[data-theme="light"] nav.scrolled { background: rgba(240,244,255,0.85); }
+.logo {
+  font-family: var(--font-mono); font-size:1.1rem; font-weight:500;
+  color: var(--blue); letter-spacing:0.05em; text-decoration:none;
+}
+.logo span { color: var(--text); }
+.nav-links { display:flex; gap:36px; list-style:none; }
+.nav-links a {
+  font-size:0.8rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+  color: var(--muted); text-decoration:none; transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-right { display:flex; gap:12px; align-items:center; }
+#theme-btn {
+  background:none; border:1px solid var(--border); color:var(--text);
+  border-radius:8px; padding:8px 14px; font-family:var(--font-mono);
+  font-size:0.75rem; cursor:none; transition:all 0.2s;
+}
+#theme-btn:hover { border-color:var(--blue); color:var(--blue); }
+.cta-nav {
+  background: var(--blue); color:#000; border:none; border-radius:8px;
+  padding:9px 20px; font-family:var(--font-display); font-weight:700;
+  font-size:0.78rem; letter-spacing:0.08em; cursor:none;
+  transition:all 0.2s; text-transform:uppercase;
+}
+.cta-nav:hover { background:var(--teal); box-shadow:0 0 24px var(--glow-teal); }
+
+/* ===== LANG NAV BTN ===== */
+#lang-btn-nav {
+  background:none; border:1px solid var(--border); color:var(--teal);
+  border-radius:8px; padding:8px 14px; font-family:var(--font-mono);
+  font-size:0.75rem; cursor:none; transition:all 0.2s; letter-spacing:0.05em;
+}
+#lang-btn-nav:hover { border-color:var(--teal); box-shadow:0 0 16px var(--glow-teal); }
+
+/* ===== HERO ===== */
+#hero {
+  position:relative; height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:0 24px; z-index:1; overflow:hidden;
+}
+.hero-tag {
+  font-family:var(--font-mono); font-size:0.72rem; font-weight:400;
+  letter-spacing:0.25em; text-transform:uppercase; color:var(--blue);
+  border:1px solid var(--border); border-radius:100px; padding:6px 18px;
+  margin-bottom:36px; opacity:0; animation: fadeUp 0.8s 0.3s var(--ease) forwards;
+  backdrop-filter:blur(8px);
+}
+.hero-headline {
+  font-size:clamp(2.8rem,7vw,6.2rem); font-weight:800; line-height:1.05;
+  letter-spacing:-0.02em; margin-bottom:28px;
+  opacity:0; animation: fadeUp 0.9s 0.55s var(--ease) forwards;
+}
+.hero-headline .accent { color:var(--blue); }
+.hero-sub {
+  font-family:var(--font-mono); font-size:clamp(0.82rem,1.5vw,1rem);
+  color:var(--muted); max-width:520px; line-height:1.7; margin-bottom:48px;
+  opacity:0; animation: fadeUp 0.9s 0.75s var(--ease) forwards;
+}
+.hero-btns { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; opacity:0; animation: fadeUp 0.9s 0.95s var(--ease) forwards; }
+.btn-primary {
+  display:inline-flex; align-items:center; gap:10px;
+  background:var(--blue); color:#000; font-family:var(--font-display);
+  font-weight:700; font-size:0.85rem; letter-spacing:0.08em; text-transform:uppercase;
+  padding:14px 32px; border-radius:10px; text-decoration:none; cursor:none;
+  transition:all 0.25s var(--ease); border:none; position:relative; overflow:hidden;
+}
+.btn-primary::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.25),transparent);
+  opacity:0; transition:opacity 0.2s;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,170,255,0.4); }
+.btn-primary:hover::after { opacity:1; }
+.btn-ghost {
+  display:inline-flex; align-items:center; gap:10px;
+  background:transparent; color:var(--text); font-family:var(--font-display);
+  font-weight:600; font-size:0.85rem; letter-spacing:0.08em; text-transform:uppercase;
+  padding:14px 32px; border-radius:10px; text-decoration:none; cursor:none;
+  border:1px solid var(--border); transition:all 0.25s var(--ease);
+}
+.btn-ghost:hover { border-color:var(--blue); color:var(--blue); box-shadow:0 0 24px var(--glow-blue); }
+
+/* ===== LANG HERO BTN ===== */
+.btn-lang {
+  display:inline-flex; align-items:center; gap:8px;
+  background:transparent; color:var(--teal); font-family:var(--font-mono);
+  font-weight:500; font-size:0.82rem; letter-spacing:0.1em;
+  padding:14px 28px; border-radius:10px; text-decoration:none; cursor:none;
+  border:1px solid rgba(0,255,210,0.25); transition:all 0.25s var(--ease);
+}
+.btn-lang:hover { border-color:var(--teal); box-shadow:0 0 24px var(--glow-teal); background:rgba(0,255,210,0.05); }
+.btn-lang .lang-icon { font-size:1rem; }
+
+.scroll-hint {
+  position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  font-family:var(--font-mono); font-size:0.65rem; color:var(--muted); letter-spacing:0.15em;
+  text-transform:uppercase; opacity:0; animation:fadeIn 1s 1.5s forwards;
+}
+.scroll-line { width:1px; height:40px; background:linear-gradient(to bottom,var(--blue),transparent); animation:scrollPulse 2s infinite; }
+
+/* ===== SECTIONS ===== */
+section { position:relative; z-index:1; }
+.section-inner { max-width:1100px; margin:0 auto; padding:120px 48px; }
+.section-label {
+  font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.25em;
+  text-transform:uppercase; color:var(--blue); margin-bottom:16px;
+  display:flex; align-items:center; gap:12px;
+}
+.section-label::before { content:''; display:block; width:30px; height:1px; background:var(--blue); }
+.section-title { font-size:clamp(2rem,4vw,3.2rem); font-weight:800; line-height:1.1; letter-spacing:-0.02em; margin-bottom:20px; }
+.section-title .accent { color:var(--blue); }
+
+/* ===== INTERACTIVE STORY ===== */
+#story { background:linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); }
+.story-grid { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; margin-top:80px; }
+.story-grid.reverse { direction:rtl; }
+.story-grid.reverse > * { direction:ltr; }
+
+.story-text p { font-family:var(--font-mono); font-size:0.88rem; color:var(--muted); line-height:1.8; margin-top:16px; }
+
+/* Encryption visualizer */
+.encrypt-box {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:28px; backdrop-filter:blur(12px); position:relative; overflow:hidden;
+}
+.encrypt-box::before {
+  content:''; position:absolute; top:-60px; right:-60px;
+  width:180px; height:180px; border-radius:50%;
+  background:radial-gradient(circle, var(--glow-blue), transparent 70%);
+  pointer-events:none;
+}
+.enc-label { font-family:var(--font-mono); font-size:0.65rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.enc-field {
+  background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:8px;
+  padding:12px 16px; font-family:var(--font-mono); font-size:0.82rem; color:var(--teal);
+  min-height:48px; word-break:break-all; line-height:1.5; transition:color 0.3s;
+}
+.enc-arrow { text-align:center; margin:12px 0; color:var(--blue); font-size:1.2rem; }
+.enc-btn {
+  width:100%; margin-top:16px; padding:12px; border-radius:8px; border:none;
+  background:linear-gradient(90deg,var(--blue),var(--teal)); color:#000;
+  font-family:var(--font-display); font-weight:700; font-size:0.8rem; cursor:none;
+  letter-spacing:0.08em; text-transform:uppercase; transition:all 0.25s;
+}
+.enc-btn:hover { opacity:0.85; box-shadow:0 6px 30px var(--glow-blue); }
+.enc-input {
+  width:100%; padding:12px 16px; border-radius:8px;
+  background:rgba(0,0,0,0.35); border:1px solid var(--border);
+  color:var(--text); font-family:var(--font-mono); font-size:0.82rem;
+  outline:none; transition:border-color 0.2s; margin-bottom:12px;
+}
+.enc-input:focus { border-color:var(--blue); }
+
+/* Stego visualizer */
+.stego-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:3px; margin:16px 0; }
+.pixel {
+  aspect-ratio:1; border-radius:3px; transition:background 0.4s;
+}
+
+/* ===== FEATURES ===== */
+#features { padding:0; }
+.features-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; margin-top:64px; }
+.feature-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:32px 28px; position:relative; overflow:hidden; cursor:none;
+  transition:transform 0.3s var(--ease), border-color 0.3s, box-shadow 0.3s;
+  transform-style:preserve-3d;
+}
+.feature-card::before {
+  content:''; position:absolute; inset:0; opacity:0;
+  background:radial-gradient(circle at var(--mx,50%) var(--my,50%), var(--glow-blue), transparent 65%);
+  transition:opacity 0.4s; border-radius:16px;
+}
+.feature-card:hover { border-color:var(--blue); box-shadow:0 16px 60px var(--glow-blue); }
+.feature-card:hover::before { opacity:1; }
+.feat-icon { font-size:2rem; margin-bottom:20px; }
+.feat-title { font-size:1.08rem; font-weight:700; margin-bottom:10px; }
+.feat-desc { font-family:var(--font-mono); font-size:0.8rem; color:var(--muted); line-height:1.7; }
+.feat-badge {
+  display:inline-block; margin-top:16px; font-family:var(--font-mono); font-size:0.65rem;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--blue);
+  border:1px solid var(--border); border-radius:100px; padding:4px 12px;
+}
+
+/* ===== ARCHITECTURE ===== */
+#architecture { background:var(--bg2); }
+.arch-diagram { margin-top:64px; display:flex; flex-direction:column; gap:0; align-items:center; }
+.arch-layer {
+  width:100%; max-width:700px; background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:22px 28px; cursor:none; position:relative;
+  transition:all 0.3s var(--ease); overflow:hidden;
+}
+.arch-layer:hover { border-color:var(--blue); box-shadow:0 0 40px var(--glow-blue); transform:scale(1.02); }
+.arch-layer-header { display:flex; align-items:center; gap:16px; }
+.arch-dot { width:10px; height:10px; border-radius:50%; background:var(--blue); flex-shrink:0; box-shadow:0 0 10px var(--blue); }
+.arch-layer-name { font-weight:700; font-size:0.95rem; }
+.arch-layer-tag { margin-left:auto; font-family:var(--font-mono); font-size:0.68rem; color:var(--blue); }
+.arch-detail {
+  max-height:0; overflow:hidden; transition:max-height 0.4s var(--ease), opacity 0.4s;
+  opacity:0; font-family:var(--font-mono); font-size:0.8rem; color:var(--muted); line-height:1.7;
+}
+.arch-layer:hover .arch-detail { max-height:200px; opacity:1; margin-top:14px; }
+.arch-connector {
+  width:1px; height:32px; background:linear-gradient(to bottom,var(--blue),transparent);
+  margin:0 auto;
+}
+
+/* ===== DOWNLOAD ===== */
+#download { background:var(--bg); }
+.dl-module {
+  max-width:600px; margin:64px auto 0;
+  background:var(--surface); border:1px solid var(--border); border-radius:20px;
+  padding:44px 40px; text-align:center; backdrop-filter:blur(16px); position:relative; overflow:hidden;
+}
+.dl-module::before {
+  content:''; position:absolute; top:-80px; left:50%; transform:translateX(-50%);
+  width:300px; height:300px; border-radius:50%;
+  background:radial-gradient(circle,var(--glow-blue),transparent 70%);
+  pointer-events:none;
+}
+.dl-version-tabs { display:flex; gap:8px; justify-content:center; margin-bottom:32px; }
+.dl-tab {
+  font-family:var(--font-mono); font-size:0.72rem; padding:8px 18px; border-radius:8px;
+  border:1px solid var(--border); background:none; color:var(--muted); cursor:none;
+  transition:all 0.2s; letter-spacing:0.1em;
+}
+.dl-tab.active { border-color:var(--blue); color:var(--blue); background:rgba(0,170,255,0.08); }
+.dl-icon { font-size:3rem; margin-bottom:20px; display:block; }
+.dl-name { font-size:1.5rem; font-weight:800; margin-bottom:6px; }
+.dl-meta { font-family:var(--font-mono); font-size:0.75rem; color:var(--muted); margin-bottom:28px; }
+.dl-badges { display:flex; gap:10px; justify-content:center; margin-bottom:32px; flex-wrap:wrap; }
+.dl-badge {
+  font-family:var(--font-mono); font-size:0.65rem; letter-spacing:0.1em;
+  text-transform:uppercase; padding:6px 14px; border-radius:100px;
+  border:1px solid; display:flex; align-items:center; gap:6px;
+}
+.dl-badge.green { border-color:rgba(0,255,140,0.35); color:#0fa; }
+.dl-badge.blue { border-color:var(--border); color:var(--blue); }
+.dl-btn {
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  width:100%; padding:16px; border-radius:12px; border:none;
+  background:linear-gradient(90deg,var(--blue),#005eea); color:#fff;
+  font-family:var(--font-display); font-weight:700; font-size:0.9rem;
+  letter-spacing:0.08em; text-transform:uppercase; cursor:none;
+  transition:all 0.3s var(--ease); position:relative; overflow:hidden;
+}
+.dl-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent); }
+.dl-btn:hover { transform:translateY(-2px); box-shadow:0 16px 50px rgba(0,100,255,0.45); }
+.dl-hash { margin-top:20px; font-family:var(--font-mono); font-size:0.65rem; color:var(--muted); letter-spacing:0.08em; }
+
+/* ===== ABOUT ===== */
+#about { background:var(--bg2); }
+.about-grid { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; margin-top:64px; }
+.about-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:36px; text-align:center;
+}
+.avatar {
+  width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--teal));
+  margin:0 auto 20px; display:flex; align-items:center; justify-content:center;
+  font-size:2.2rem; font-weight:800; color:#000; font-family:var(--font-display);
+}
+.about-name { font-size:1.2rem; font-weight:700; margin-bottom:6px; }
+.about-role { font-family:var(--font-mono); font-size:0.75rem; color:var(--blue); margin-bottom:16px; }
+.about-bio { font-family:var(--font-mono); font-size:0.8rem; color:var(--muted); line-height:1.7; }
+.about-text p { font-family:var(--font-mono); font-size:0.88rem; color:var(--muted); line-height:1.8; margin-top:16px; }
+.stat-row { display:flex; gap:36px; margin-top:36px; }
+.stat h3 { font-size:2rem; font-weight:800; color:var(--blue); }
+.stat p { font-family:var(--font-mono); font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+
+/* ===== ABOUT EMAIL DISPLAY ===== */
+.about-email-box {
+  margin-top:28px; padding:16px 20px;
+  background:rgba(0,170,255,0.05); border:1px solid var(--border);
+  border-radius:10px; display:flex; align-items:center; gap:14px;
+  backdrop-filter:blur(8px);
+}
+.about-email-icon { font-size:1.1rem; flex-shrink:0; }
+.about-email-inner {}
+.about-email-label-text {
+  font-family:var(--font-mono); font-size:0.6rem; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:4px;
+}
+.about-email-value {
+  font-family:var(--font-mono); font-size:0.82rem; color:var(--blue);
+  letter-spacing:0.04em;
+}
+
+/* ===== CONTACT SECTION ===== */
+#contact { background:var(--bg); border-top:1px solid var(--border); }
+.contact-grid {
+  display:grid; grid-template-columns:1fr 1.5fr; gap:64px;
+  align-items:start; margin-top:64px;
+}
+.contact-info { display:flex; flex-direction:column; gap:24px; }
+.contact-info-text {
+  font-family:var(--font-mono); font-size:0.85rem; color:var(--muted); line-height:1.8;
+}
+.contact-detail-box {
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:24px 28px; backdrop-filter:blur(12px); position:relative; overflow:hidden;
+}
+.contact-detail-box::before {
+  content:''; position:absolute; top:-40px; left:-40px;
+  width:130px; height:130px; border-radius:50%;
+  background:radial-gradient(circle, var(--glow-blue), transparent 70%);
+  pointer-events:none;
+}
+.contact-detail-label {
+  font-family:var(--font-mono); font-size:0.62rem; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:10px;
+}
+.contact-detail-value {
+  font-family:var(--font-mono); font-size:0.88rem; color:var(--blue);
+  word-break:break-all; letter-spacing:0.03em;
+}
+.contact-form-box {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:36px; backdrop-filter:blur(16px); position:relative; overflow:hidden;
+}
+.contact-form-box::before {
+  content:''; position:absolute; bottom:-70px; right:-70px;
+  width:200px; height:200px; border-radius:50%;
+  background:radial-gradient(circle, var(--glow-teal), transparent 70%);
+  pointer-events:none;
+}
+.form-group { margin-bottom:20px; }
+.form-label {
+  display:block; font-family:var(--font-mono); font-size:0.63rem;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin-bottom:8px;
+}
+.form-field {
+  width:100%; padding:12px 16px;
+  background:rgba(0,0,0,0.35); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-family:var(--font-mono);
+  font-size:0.82rem; outline:none;
+  transition:border-color 0.25s, box-shadow 0.25s;
+  -webkit-appearance:none;
+}
+.form-field:focus { border-color:var(--blue); box-shadow:0 0 0 3px var(--glow-blue); }
+textarea.form-field { min-height:118px; resize:vertical; }
+.form-submit-btn {
+  width:100%; padding:14px; border-radius:10px; border:none;
+  background:linear-gradient(90deg,var(--blue),var(--teal)); color:#000;
+  font-family:var(--font-display); font-weight:700; font-size:0.85rem;
+  letter-spacing:0.08em; text-transform:uppercase; cursor:none;
+  transition:all 0.25s var(--ease); margin-top:8px; position:relative; overflow:hidden;
+}
+.form-submit-btn::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.18),transparent);
+}
+.form-submit-btn:hover:not(:disabled) {
+  opacity:0.88; box-shadow:0 8px 36px var(--glow-teal); transform:translateY(-1px);
+}
+.form-submit-btn:disabled {
+  opacity:0.35; cursor:not-allowed !important; transform:none;
+  background:linear-gradient(90deg,var(--muted),var(--muted));
+}
+.contact-success {
+  display:none; margin-top:16px; padding:14px 20px;
+  background:rgba(0,255,210,0.07); border:1px solid rgba(0,255,210,0.3);
+  border-radius:10px; font-family:var(--font-mono); font-size:0.82rem;
+  color:var(--teal); text-align:center; line-height:1.6;
+}
+.contact-success.show { display:block; animation: fadeUp 0.5s var(--ease) forwards; }
+.contact-success-icon { font-size:1.4rem; display:block; margin-bottom:8px; }
+
+/* ===== DISCLAIMER ===== */
+#disclaimer {
+  border-top:1px solid var(--border);
+  background:var(--bg);
+}
+.disclaimer-box {
+  background:rgba(255,80,80,0.05); border:1px solid rgba(255,80,80,0.2); border-radius:14px;
+  padding:28px 32px; margin-top:40px;
+}
+.disclaimer-box p { font-family:var(--font-mono); font-size:0.78rem; color:var(--muted); line-height:1.8; }
+.disclaimer-box strong { color:#ff6060; }
+
+/* ===== FOOTER ===== */
+footer {
+  text-align:center; padding:40px 24px;
+  border-top:1px solid var(--border); z-index:1; position:relative;
+  font-family:var(--font-mono); font-size:0.72rem; color:var(--muted);
+}
+footer span { color:var(--blue); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(30px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity:0; }
+  to { opacity:1; }
+}
+@keyframes scrollPulse {
+  0%,100% { opacity:0.4; transform:scaleY(1); }
+  50% { opacity:1; transform:scaleY(1.3); }
+}
+@keyframes glow-pulse {
+  0%,100% { box-shadow:0 0 12px var(--blue); }
+  50% { box-shadow:0 0 30px var(--blue), 0 0 60px var(--teal); }
+}
+@keyframes matrix-fall { from { transform:translateY(-20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+/* reveal on scroll */
+.reveal {
+  opacity:0; transform:translateY(40px);
+  transition:opacity 0.8s var(--ease), transform 0.8s var(--ease);
+}
+.reveal.visible { opacity:1; transform:none; }
+
+/* ===== RTL SUPPORT ===== */
+[dir="rtl"] { text-align:right; }
+[dir="rtl"] .section-label { flex-direction:row-reverse; justify-content:flex-end; }
+[dir="rtl"] .section-label::before { display:none; }
+[dir="rtl"] .section-label::after { content:''; display:block; width:30px; height:1px; background:var(--blue); }
+[dir="rtl"] .hero-btns { flex-direction:row-reverse; }
+[dir="rtl"] .arch-layer-header { flex-direction:row-reverse; }
+[dir="rtl"] .arch-layer-tag { margin-left:0; margin-right:auto; }
+[dir="rtl"] .story-grid { direction:rtl; }
+[dir="rtl"] .story-grid.reverse { direction:ltr; }
+[dir="rtl"] .story-grid > * { direction:rtl; }
+[dir="rtl"] .story-grid.reverse > * { direction:ltr; }
+[dir="rtl"] .about-grid { direction:rtl; }
+[dir="rtl"] .about-grid > * { direction:rtl; }
+[dir="rtl"] .about-card { direction:rtl; }
+[dir="rtl"] .stat-row { direction:rtl; }
+[dir="rtl"] .contact-grid { direction:rtl; }
+[dir="rtl"] .contact-grid > * { direction:rtl; }
+[dir="rtl"] .dl-version-tabs { direction:rtl; }
+[dir="rtl"] .dl-badges { direction:rtl; }
+[dir="rtl"] .hero-tag { direction:rtl; letter-spacing:0.1em; }
+[dir="rtl"] .scroll-hint { direction:ltr; }
+[dir="rtl"] .about-email-box { flex-direction:row-reverse; }
+[dir="rtl"] .contact-detail-box { direction:rtl; }
+[dir="rtl"] .nav-links { flex-direction:row-reverse; }
+[dir="rtl"] .nav-right { flex-direction:row-reverse; }
+[dir="rtl"] nav { flex-direction:row-reverse; }
+[dir="rtl"] .feat-badge { letter-spacing:0.05em; }
+[dir="rtl"] .form-label { letter-spacing:0.05em; }
+[dir="rtl"] .enc-label { letter-spacing:0.05em; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:768px) {
+  nav { padding:16px 20px; }
+  .nav-links { display:none; }
+  .section-inner { padding:80px 20px; }
+  .story-grid, .about-grid, .contact-grid { grid-template-columns:1fr; gap:40px; }
+  .story-grid.reverse { direction:ltr; }
+  .hero-btns { flex-direction:column; align-items:center; }
+  .stat-row { gap:24px; }
+  .dl-module { padding:32px 20px; }
+  .contact-form-box { padding:24px 20px; }
+  [dir="rtl"] .hero-btns { flex-direction:column; align-items:center; }
+}
+
+/* ===== TYPEWRITER ===== */
+.typewriter-cursor { display:inline-block; width:3px; height:0.85em; background:var(--blue); margin-left:4px; vertical-align:middle; animation:blink 0.9s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ===== PROGRESS BAR ===== */
+#progress-bar { position:fixed; top:0; left:0; height:2px; background:linear-gradient(90deg,var(--blue),var(--teal)); z-index:200; width:0%; transition:width 0.1s; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav id="main-nav">
+  <a class="logo" href="#hero">Umbrix<span></span></a>
+  <ul class="nav-links">
+    <li><a href="#story" data-i18n="nav.howItWorks">How It Works</a></li>
+    <li><a href="#features" data-i18n="nav.features">Features</a></li>
+    <li><a href="#architecture" data-i18n="nav.architecture">Architecture</a></li>
+    <li><a href="#download" data-i18n="nav.download">Download</a></li>
+    <li><a href="#about" data-i18n="nav.about">About</a></li>
+    <li><a href="#contact" data-i18n="nav.contact">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <button id="theme-btn">☀ Light</button>
+    <button id="lang-btn-nav" onclick="toggleLang()">العربية</button>
+    <button class="cta-nav" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})" data-i18n="nav.getItFree">Get It Free</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-tag" data-i18n="hero.tag">v1.0 Beta · 2026 · Built by Ali Adnan</div>
+  <h1 class="hero-headline"><span data-i18n="hero.yourData">Your Data.</span><br><span class="accent" id="typewriter-target"></span></h1>
+  <p class="hero-sub" data-i18n="hero.sub">AES-256 encryption + steganography. Zero internet. Zero tracking. Zero compromise.</p>
+  <div class="hero-btns">
+    <a href="#download" class="btn-primary" data-i18n="hero.downloadBtn">⬇ Download for Windows (Free)</a>
+    <a href="#story" class="btn-ghost" data-i18n="hero.seeHow">↓ See How It Works</a>
+    <button class="btn-lang" id="lang-btn-hero" onclick="toggleLang()">
+      <span class="lang-icon">🌐</span><span data-i18n="hero.langBtnLabel">العربية</span>
+    </button>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span data-i18n="hero.scroll">scroll</span>
+  </div>
+</section>
+
+<!-- INTERACTIVE STORY -->
+<section id="story">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="story.label">How It Works</div>
+    <h2 class="section-title reveal" data-i18n-html="story.title">Encryption you can <span class="accent">see</span>.</h2>
+
+    <!-- AES Demo -->
+    <div class="story-grid reveal">
+      <div class="story-text">
+        <h3 style="font-size:1.5rem;font-weight:800;margin-bottom:8px;" data-i18n="story.aes.heading">AES-256 Encryption</h3>
+        <p data-i18n="story.aes.p1">Type any text below and watch Umbrix transform it into unreadable cipher. AES-256 in EAX mode — the same standard used by governments and financial institutions.</p>
+        <p style="margin-top:10px;" data-i18n="story.aes.p2">Your key never leaves your device. No cloud. No server. No one else can decrypt this.</p>
+      </div>
+      <div class="encrypt-box">
+        <div class="enc-label" data-i18n="story.aes.inputLabel">Plaintext Input</div>
+        <input class="enc-input" id="plain-input" type="text" placeholder="Type your secret message…" maxlength="60" data-i18n-placeholder="story.aes.inputPlaceholder"/>
+        <div class="enc-label" data-i18n="story.aes.outputLabel">Simulated AES-256 Ciphertext</div>
+        <div class="enc-field" id="cipher-output">—</div>
+        <button class="enc-btn" id="enc-btn" data-i18n="story.aes.btn">⚡ Encrypt Simulation</button>
+      </div>
+    </div>
+
+    <!-- Steganography Demo -->
+    <div class="story-grid reverse reveal" style="margin-top:80px;">
+      <div class="story-text">
+        <h3 style="font-size:1.5rem;font-weight:800;margin-bottom:8px;" data-i18n="story.stego.heading">LSB Steganography</h3>
+        <p data-i18n="story.stego.p1">Umbrix hides encrypted data inside the least-significant bits of image pixels — invisible to the naked eye, imperceptible to standard viewers.</p>
+        <p style="margin-top:10px;" data-i18n="story.stego.p2">Click a pixel below to see how binary data is injected. Carriers look identical before and after.</p>
+      </div>
+      <div class="encrypt-box">
+        <div class="enc-label" data-i18n="story.stego.gridLabel">Image Pixel Grid — hover to inspect</div>
+        <div class="stego-grid" id="stego-grid"></div>
+        <div class="enc-label" style="margin-top:16px;" data-i18n="story.stego.bitLabel">Injected bit stream</div>
+        <div class="enc-field" id="bit-stream" style="font-size:0.7rem;letter-spacing:0.1em;">01001000 01101001 01100100 01100101…</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="features.label">Capabilities</div>
+    <h2 class="section-title reveal" data-i18n-html="features.title">Built for real <span class="accent">privacy</span>.</h2>
+    <div class="features-grid">
+      <div class="feature-card reveal" data-delay="0">
+        <div class="feat-icon">🔒</div>
+        <div class="feat-title" data-i18n="feat1.title">AES-256 · EAX Mode</div>
+        <div class="feat-desc" data-i18n="feat1.desc">Authenticated encryption with associated data (AEAD). Provides both confidentiality and integrity — tampered ciphertext is rejected.</div>
+        <span class="feat-badge" data-i18n="feat1.badge">Military-Grade</span>
+      </div>
+      <div class="feature-card reveal" data-delay="100">
+        <div class="feat-icon">🖼</div>
+        <div class="feat-title" data-i18n="feat2.title">LSB Steganography</div>
+        <div class="feat-desc" data-i18n="feat2.desc">Hide encrypted payloads in image LSBs. The carrier image remains visually identical. No metadata added. No watermark.</div>
+        <span class="feat-badge" data-i18n="feat2.badge">Invisible Carrier</span>
+      </div>
+      <div class="feature-card reveal" data-delay="200">
+        <div class="feat-icon">✈️</div>
+        <div class="feat-title" data-i18n="feat3.title">Fully Offline</div>
+        <div class="feat-desc" data-i18n="feat3.desc">Zero internet required. Umbrix processes everything on your local file system. No telemetry, no analytics, no remote endpoints.</div>
+        <span class="feat-badge" data-i18n="feat3.badge">Air-Gapped Safe</span>
+      </div>
+      <div class="feature-card reveal" data-delay="300">
+        <div class="feat-icon">🔑</div>
+        <div class="feat-title" data-i18n="feat4.title">Password-Based KDF</div>
+        <div class="feat-desc" data-i18n="feat4.desc">Keys are derived via SHA-256 password hashing. There is no key recovery. If you lose your password, the data is permanently inaccessible.</div>
+        <span class="feat-badge" data-i18n="feat4.badge">Zero Recovery</span>
+      </div>
+      <div class="feature-card reveal" data-delay="400">
+        <div class="feat-icon">👁</div>
+        <div class="feat-title" data-i18n="feat5.title">Zero Tracking</div>
+        <div class="feat-desc" data-i18n="feat5.desc">No crash reports. No usage analytics. No telemetry. Umbrix does not know you exist, and will never phone home.</div>
+        <span class="feat-badge" data-i18n="feat5.badge">Privacy First</span>
+      </div>
+      <div class="feature-card reveal" data-delay="500">
+        <div class="feat-icon">📁</div>
+        <div class="feat-title" data-i18n="feat6.title">Local File System</div>
+        <div class="feat-desc" data-i18n="feat6.desc">All operations read from and write to your local disk. Nothing is buffered in the cloud. Your files stay your files.</div>
+        <span class="feat-badge" data-i18n="feat6.badge">Local Only</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="arch.label">System Design</div>
+    <h2 class="section-title reveal" data-i18n-html="arch.title">Security <span class="accent">architecture</span>.</h2>
+    <p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--muted);max-width:520px;" class="reveal" data-i18n="arch.subtitle">Hover each layer to see how the pipeline works. Every stage is isolated — compromise one layer and the others remain intact.</p>
+    <div class="arch-diagram reveal">
+      <div class="arch-layer">
+        <div class="arch-layer-header">
+          <div class="arch-dot" style="background:#0af;box-shadow:0 0 10px #0af;"></div>
+          <span class="arch-layer-name" data-i18n="arch1.name">① Key Derivation Layer</span>
+          <span class="arch-layer-tag" data-i18n="arch1.tag">SHA-256 KDF</span>
+        </div>
+        <div class="arch-detail" data-i18n="arch1.detail">Password → SHA-256 → 256-bit symmetric key. This operation is one-way: the key cannot be reversed to reveal your password. The derived key lives in memory only for the duration of the operation, then is discarded.</div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-layer">
+        <div class="arch-layer-header">
+          <div class="arch-dot" style="background:#0fd;box-shadow:0 0 10px #0fd;"></div>
+          <span class="arch-layer-name" data-i18n="arch2.name">② AES-256 Encryption Layer</span>
+          <span class="arch-layer-tag" data-i18n="arch2.tag">EAX Mode · AEAD</span>
+        </div>
+        <div class="arch-detail" data-i18n="arch2.detail">The derived key encrypts your plaintext using AES-256-EAX — an authenticated encryption mode. A random nonce is generated per operation. The output is ciphertext + authentication tag. Any modification to the ciphertext causes tag verification to fail.</div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-layer">
+        <div class="arch-layer-header">
+          <div class="arch-dot" style="background:#a0f;box-shadow:0 0 10px #a0f;"></div>
+          <span class="arch-layer-name" data-i18n="arch3.name">③ Steganography Layer</span>
+          <span class="arch-layer-tag" data-i18n="arch3.tag">LSB Image Injection</span>
+        </div>
+        <div class="arch-detail" data-i18n="arch3.detail">The binary-encoded ciphertext is distributed across the least-significant bits of RGB pixel channels in the carrier image. The perceptual change per pixel is ≤1/255 — invisible. A length header is prepended so the decoder knows how many bits to extract.</div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-layer">
+        <div class="arch-layer-header">
+          <div class="arch-dot" style="background:#ff6;box-shadow:0 0 10px #ff6;"></div>
+          <span class="arch-layer-name" data-i18n="arch4.name">④ File Output Layer</span>
+          <span class="arch-layer-tag" data-i18n="arch4.tag">Local Disk Write</span>
+        </div>
+        <div class="arch-detail" data-i18n="arch4.detail">The stego-image is written to your local file system in its original format. No metadata is added. No file is transmitted. The only copy exists on your hardware. The original carrier and plaintext are never stored.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="dl.label">Get Umbrix</div>
+    <h2 class="section-title reveal" style="text-align:center;" data-i18n-html="dl.title">Download &amp; <span class="accent">Deploy</span>.</h2>
+    <div class="dl-module reveal">
+      <div class="dl-version-tabs">
+        <button class="dl-tab active" data-v="beta" data-i18n="dl.tab.beta">v1.0 Beta</button>
+        <button class="dl-tab" data-v="stable" data-i18n="dl.tab.stable">Stable (Soon)</button>
+      </div>
+      <span class="dl-icon">🔐</span>
+      <div class="dl-name" data-i18n="dl.name">Umbrix</div>
+      <div class="dl-meta" data-i18n="dl.meta">v1.0 Beta · Python · 2026 · Ali Adnan</div>
+      <div class="dl-badges">
+        <span class="dl-badge green" data-i18n="dl.badge1">✔ Offline Only</span>
+        <span class="dl-badge green" data-i18n="dl.badge2">✔ No Telemetry</span>
+        <span class="dl-badge blue" data-i18n="dl.badge3">AES-256-EAX</span>
+        <span class="dl-badge blue" data-i18n="dl.badge4">LSB Stego</span>
+      </div>
+      <button class="dl-btn" id="dl-main-btn">
+        <span id="dl-btn-text" data-i18n="dl.btn">⬇ Download for Windows (Free)</span>
+      </button>
+      <div class="dl-hash" data-i18n="dl.hash">SHA-256 integrity check · verify before running</div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="about.label">The Developer</div>
+    <h2 class="section-title reveal" data-i18n-html="about.title">Privacy is a <span class="accent">right</span>.</h2>
+    <div class="about-grid reveal">
+      <div class="about-card">
+        <div class="avatar">AA</div>
+        <div class="about-name" data-i18n="about.name">Ali Adnan</div>
+        <div class="about-role" data-i18n="about.role">Creator · Umbrix</div>
+        <div class="about-bio" data-i18n="about.bio">Security-focused developer building tools that put privacy back in the hands of the user. Umbrix is open in philosophy: no tracking, no monetization of your data, no subscription required.</div>
+        <div class="about-email-box">
+          <span class="about-email-icon">✉️</span>
+          <div class="about-email-inner">
+            <div class="about-email-label-text" data-i18n="about.emailLabel">Contact Email</div>
+            <div class="about-email-value">ali.adnan.alnahal@gmail.com</div>
+          </div>
+        </div>
+      </div>
+      <div class="about-text">
+        <p data-i18n-html="about.p1">Umbrix was built from a simple conviction: <strong style="color:var(--text);">your private data should stay private</strong> — not backed up to someone else's server, not analyzed for advertising, not accessible to any party other than you.</p>
+        <p data-i18n="about.p2">Modern software trends toward centralization and connectivity. Umbrix goes the other direction. Every design decision prioritizes offline operation, cryptographic correctness, and zero data exposure.</p>
+        <p data-i18n="about.p3">The tool is intentionally simple. Complexity is the enemy of security.</p>
+        <div class="stat-row">
+          <div class="stat"><h3 data-i18n="about.stat1.val">256</h3><p data-i18n="about.stat1.label">Bit Key</p></div>
+          <div class="stat"><h3 data-i18n="about.stat2.val">0</h3><p data-i18n="about.stat2.label">Servers</p></div>
+          <div class="stat"><h3 data-i18n="about.stat3.val">∞</h3><p data-i18n="about.stat3.label">Privacy</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="contact.label">Get In Touch</div>
+    <h2 class="section-title reveal" data-i18n-html="contact.title">Contact <span class="accent">Us</span>.</h2>
+    <div class="contact-grid reveal">
+      <div class="contact-info">
+        <p class="contact-info-text" data-i18n="contact.sub">Have questions or feedback? We'd love to hear from you.</p>
+        <div class="contact-detail-box">
+          <div class="contact-detail-label" data-i18n="contact.emailLabel">Direct Email</div>
+          <div class="contact-detail-value">ali.adnan.alnahal@gmail.com</div>
+        </div>
+        <div class="contact-detail-box" style="background:rgba(0,255,210,0.03);border-color:rgba(0,255,210,0.15);">
+          <div class="contact-detail-label" data-i18n="contact.responseLabel">Response Time</div>
+          <div class="contact-detail-value" style="color:var(--teal);" data-i18n="contact.responseVal">Within 24–48 hours</div>
+        </div>
+      </div>
+      <div class="contact-form-box">
+        <form id="contact-form" novalidate>
+          <input type="hidden" name="_subject" value="New Umbrix Contact Message">
+          <input type="hidden" name="_captcha" value="false">
+          <div class="form-group">
+            <label class="form-label" for="c-name" data-i18n="contact.name.label">Full Name</label>
+            <input class="form-field" id="c-name" name="name" type="text" placeholder="Your name" required data-i18n-placeholder="contact.name.placeholder"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="c-email" data-i18n="contact.email.label">Email Address</label>
+            <input class="form-field" id="c-email" name="email" type="email" placeholder="your@email.com" required data-i18n-placeholder="contact.email.placeholder"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="c-msg" data-i18n="contact.message.label">Message</label>
+            <textarea class="form-field" id="c-msg" name="message" placeholder="Your message…" required data-i18n-placeholder="contact.message.placeholder"></textarea>
+          </div>
+          <button type="submit" class="form-submit-btn" id="contact-submit-btn">
+            <span id="contact-btn-text" data-i18n="contact.submit">⟶ Send Message</span>
+          </button>
+        </form>
+        <div class="contact-success" id="contact-success">
+          <span class="contact-success-icon">✔</span>
+          <span data-i18n="contact.success">Thank you, your message has been successfully submitted.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DISCLAIMER -->
+<section id="disclaimer">
+  <div class="section-inner">
+    <div class="section-label" data-i18n="disc.label">Legal Notice</div>
+    <h2 class="section-title reveal" data-i18n="disc.title">Disclaimer</h2>
+    <div class="disclaimer-box reveal">
+      <p data-i18n-html="disc.p1"><strong>Important:</strong> Umbrix is provided for lawful personal privacy use only. The developer <strong>Ali Adnan</strong> accepts no liability for misuse, data loss, or any damages arising from use of this software.</p>
+      <p style="margin-top:12px;" data-i18n-html="disc.p2"><strong>Password Loss:</strong> Encryption is irreversible without the correct password. There is no recovery mechanism. Lost passwords mean permanently inaccessible data. Keep your password secure and backed up in a safe location.</p>
+      <p style="margin-top:12px;" data-i18n-html="disc.p3"><strong>No Warranty:</strong> This software is provided "as is" without warranty of any kind, express or implied. Use of Umbrix for any illegal activity — including unauthorized access to systems, hiding evidence of crimes, or circumventing lawful investigations — is strictly prohibited and entirely the responsibility of the user.</p>
+      <p style="margin-top:12px;" data-i18n-html="disc.p4"><strong>Cryptography Regulations:</strong> Ensure your use of strong encryption is compliant with local laws in your jurisdiction. Export and use of cryptographic software may be regulated in certain countries.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p id="footer-text" data-i18n-html="footer.text">© 2026 <span>Umbrix</span> · Built by <span>Ali Adnan</span> · v1.0 Beta · Privacy-First Offline Security</p>
+</footer>
+
+<script>
+/* ===================================================
+   CURSOR
+=================================================== */
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  cursor.style.left=mx+'px'; cursor.style.top=my+'px';
+});
+(function animRing(){
+  rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a,button,.feature-card,.arch-layer,.dl-tab,.form-field').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{
+    ring.style.width='56px'; ring.style.height='56px'; ring.style.opacity='0.8';
+  });
+  el.addEventListener('mouseleave',()=>{
+    ring.style.width='36px'; ring.style.height='36px'; ring.style.opacity='0.5';
+  });
+});
+
+/* ===================================================
+   CANVAS BACKGROUND — PARTICLE NETWORK
+=================================================== */
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W,H,particles=[];
+
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  window.addEventListener('resize',resize); resize();
+
+  const isDark = ()=> document.documentElement.dataset.theme !== 'light';
+  const N = Math.min(70, Math.floor(window.innerWidth/20));
+
+  for(let i=0;i<N;i++) particles.push({
+    x:Math.random()*window.innerWidth,
+    y:Math.random()*window.innerHeight,
+    vx:(Math.random()-0.5)*0.35,
+    vy:(Math.random()-0.5)*0.35,
+    r:Math.random()*1.5+0.5,
+    char: Math.random()<0.5?'0':'1',
+    t:Math.random()*1000
+  });
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const dark = isDark();
+    const lineColor = dark ? 'rgba(0,170,255,' : 'rgba(0,80,220,';
+    const dotColor = dark ? 'rgba(0,220,255,' : 'rgba(0,100,230,';
+
+    particles.forEach((p,i)=>{
+      p.x+=p.vx; p.y+=p.vy; p.t+=0.008;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+
+      particles.slice(i+1).forEach(q=>{
+        const d=Math.hypot(p.x-q.x,p.y-q.y);
+        if(d<160){
+          ctx.beginPath();
+          ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y);
+          ctx.strokeStyle=lineColor+(1-d/160)*0.25+')';
+          ctx.lineWidth=0.5; ctx.stroke();
+        }
+      });
+
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=dotColor+(0.4+0.3*Math.sin(p.t))+')';
+      ctx.fill();
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ===================================================
+   NAV SCROLL
+=================================================== */
+const nav = document.getElementById('main-nav');
+const progressBar = document.getElementById('progress-bar');
+window.addEventListener('scroll',()=>{
+  nav.classList.toggle('scrolled', window.scrollY>60);
+  const pct = window.scrollY/(document.body.scrollHeight-window.innerHeight)*100;
+  progressBar.style.width = pct+'%';
+});
+
+/* ===================================================
+   THEME TOGGLE
+=================================================== */
+const themeBtn = document.getElementById('theme-btn');
+themeBtn.addEventListener('click',()=>{
+  const root = document.documentElement;
+  if(root.dataset.theme==='dark'){
+    root.dataset.theme='light';
+    themeBtn.textContent = currentLang==='ar' ? '🌙 داكن' : '🌙 Dark';
+  } else {
+    root.dataset.theme='dark';
+    themeBtn.textContent = currentLang==='ar' ? '☀ فاتح' : '☀ Light';
+  }
+});
+
+/* ===================================================
+   TYPEWRITER
+=================================================== */
+const phrasesSets = {
+  en: ['Hidden.','Encrypted.','Invisible.','Yours.'],
+  ar: ['مخفية.','مشفرة.','غير مرئية.','لك وحدك.']
+};
+let phrases = phrasesSets.en;
+let pi=0,ci=0,deleting=false;
+let twTimer = null;
+const tw = document.getElementById('typewriter-target');
+tw.innerHTML='<span class="typewriter-cursor"></span>';
+let twSpan=document.createElement('span'); tw.prepend(twSpan);
+
+function typeLoop(){
+  const phrase = phrases[pi];
+  if(!deleting){
+    twSpan.textContent = phrase.slice(0,++ci);
+    if(ci===phrase.length){ deleting=true; twTimer=setTimeout(typeLoop,1800); return; }
+  } else {
+    twSpan.textContent = phrase.slice(0,--ci);
+    if(ci===0){ deleting=false; pi=(pi+1)%phrases.length; }
+  }
+  twTimer=setTimeout(typeLoop, deleting?50:90);
+}
+setTimeout(typeLoop,1500);
+
+function resetTypewriter(){
+  if(twTimer) clearTimeout(twTimer);
+  pi=0; ci=0; deleting=false;
+  twSpan.textContent='';
+  twTimer=setTimeout(typeLoop,400);
+}
+
+/* ===================================================
+   SCROLL REVEAL
+=================================================== */
+const reveals = document.querySelectorAll('.reveal');
+const revealObs = new IntersectionObserver((entries)=>{
+  entries.forEach((e)=>{
+    if(e.isIntersecting){
+      const delay = e.target.dataset.delay||0;
+      setTimeout(()=> e.target.classList.add('visible'), +delay);
+      revealObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.12});
+reveals.forEach(r=> revealObs.observe(r));
+
+/* ===================================================
+   FEATURE CARDS — 3D TILT
+=================================================== */
+document.querySelectorAll('.feature-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-0.5;
+    const y=(e.clientY-r.top)/r.height-0.5;
+    card.style.transform=`perspective(600px) rotateX(${-y*10}deg) rotateY(${x*10}deg) translateZ(8px)`;
+    card.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    card.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+  card.addEventListener('mouseleave',()=>{
+    card.style.transform='perspective(600px) rotateX(0) rotateY(0) translateZ(0)';
+  });
+});
+
+/* ===================================================
+   AES DEMO — SIMULATED CIPHER
+=================================================== */
+function fakeEncrypt(text){
+  if(!text.trim()) return '—';
+  const hex='0123456789abcdef';
+  let out='';
+  for(let i=0;i<Math.max(text.length*2.5,32);i++){
+    const seed=(text.charCodeAt(i%text.length)*31+i*17+137)%256;
+    out+=hex[seed>>4]+hex[seed&0xf];
+    if((i+1)%4===0) out+=' ';
+  }
+  return out.trim().toUpperCase();
+}
+
+const plainInput = document.getElementById('plain-input');
+const cipherOutput = document.getElementById('cipher-output');
+const encBtn = document.getElementById('enc-btn');
+
+function animateCipher(text){
+  cipherOutput.style.color='var(--blue)';
+  let i=0;
+  const target=fakeEncrypt(text);
+  cipherOutput.textContent='';
+  const iv=setInterval(()=>{
+    cipherOutput.textContent=target.slice(0,i)+Array.from({length:Math.min(4,target.length-i)},()=>'0123456789ABCDEF'[Math.random()*16|0]).join('');
+    i+=2;
+    if(i>target.length){ clearInterval(iv); cipherOutput.textContent=target; cipherOutput.style.color='var(--teal)'; }
+  },30);
+}
+
+encBtn.addEventListener('click',()=>{ animateCipher(plainInput.value||'Hello World'); });
+plainInput.addEventListener('keypress',e=>{ if(e.key==='Enter') encBtn.click(); });
+plainInput.addEventListener('input',()=>{ if(cipherOutput.textContent!=='—') cipherOutput.textContent='—'; cipherOutput.style.color='var(--teal)'; });
+
+/* ===================================================
+   STEGANOGRAPHY PIXEL GRID
+=================================================== */
+const stegoGrid = document.getElementById('stego-grid');
+const bitStream = document.getElementById('bit-stream');
+const colors = [
+  [42,58,102],[38,55,98],[44,62,108],[40,57,100],
+  [220,180,80],[215,175,75],[225,185,85],[218,178,78],
+  [80,160,200],[75,155,195],[85,165,205],[78,158,198],
+  [200,80,100],[195,75,95],[205,85,105],[198,78,98],
+  [100,200,120],[95,195,115],[105,205,125],[98,198,118],
+  [160,80,200],[155,75,195],[165,85,205],[158,78,198],
+  [200,160,80],[195,155,75],[205,165,85],[198,158,78],
+  [80,200,200],[75,195,195],[85,205,205],[78,198,198],
+  [180,120,60],[175,115,55],[185,125,65],[178,118,58],
+  [120,180,60],[115,175,55],[125,185,65],[118,178,58],
+  [60,120,180],[55,115,175],[65,125,185],[58,118,178],
+  [180,60,120],[175,55,115],[185,65,125],[178,58,118],
+  [60,180,120],[55,175,115],[65,185,125],[58,178,118],
+  [120,60,180],[115,55,175],[125,65,185],[118,58,178],
+  [200,200,80],[195,195,75],[205,205,85],[198,198,78],
+  [80,80,200],[75,75,195],[85,85,205],[78,78,198],
+];
+
+const pixelState=[];
+colors.forEach((c,i)=>{
+  pixelState.push(0);
+  const px=document.createElement('div');
+  px.className='pixel';
+  px.style.background=`rgb(${c[0]},${c[1]},${c[2]})`;
+  px.dataset.orig=`rgb(${c[0]},${c[1]},${c[2]})`;
+  const mr=c[0]%2===0?c[0]+1:c[0]-1;
+  const mg=c[1]%2===0?c[1]+1:c[1]-1;
+  const mb=c[2]%2===0?c[2]+1:c[2]-1;
+  px.dataset.stego=`rgb(${mr},${mg},${mb})`;
+  px.dataset.bit=((i*7+3)%2).toString();
+  px.addEventListener('mouseenter',()=>{
+    pixelState[i]=1-pixelState[i];
+    px.style.background= pixelState[i] ? px.dataset.stego : px.dataset.orig;
+    px.style.boxShadow= pixelState[i] ? '0 0 8px var(--teal)':'none';
+    updateBits();
+  });
+  stegoGrid.appendChild(px);
+});
+
+function updateBits(){
+  const injected = pixelState.filter(x=>x).length;
+  let bits='';
+  for(let i=0;i<32;i++) bits += (Math.random()<injected/64?Math.round(Math.random()):0) + (i%8===7?' ':'');
+  bitStream.textContent = bits.trim() + '…';
+}
+
+/* ===================================================
+   DOWNLOAD BUTTON — WITH GOOGLE DRIVE LINK
+=================================================== */
+const DOWNLOAD_URL = 'PUT YOUR GOOGLE DRIVE LINK HERE';
+
+const dlBtn = document.getElementById('dl-main-btn');
+const dlBtnText = document.getElementById('dl-btn-text');
+
+dlBtn.addEventListener('click',()=>{
+  const prepText = currentLang==='ar' ? '⏳ جاري التحضير…' : '⏳ Preparing…';
+  const readyText = currentLang==='ar' ? '✔ جاهز — يتم الفتح…' : '✔ Ready — Opening…';
+  const dlText = currentLang==='ar'
+    ? translations.ar['dl.btn']
+    : translations.en['dl.btn'];
+
+  dlBtnText.textContent = prepText;
+  dlBtn.disabled = true;
+
+  setTimeout(()=>{ dlBtnText.textContent = readyText; }, 1200);
+  setTimeout(()=>{
+    window.open(DOWNLOAD_URL, '_blank');
+    dlBtnText.textContent = dlText;
+    dlBtn.disabled = false;
+  }, 2200);
+});
+
+document.querySelectorAll('.dl-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.dl-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    if(tab.dataset.v==='stable'){
+      dlBtnText.textContent = currentLang==='ar' ? '⏳ قريباً' : '⏳ Coming Soon';
+      dlBtn.style.opacity='0.5';
+    } else {
+      dlBtnText.textContent = currentLang==='ar' ? translations.ar['dl.btn'] : translations.en['dl.btn'];
+      dlBtn.style.opacity='1';
+    }
+  });
+});
+
+/* ===================================================
+   MAGNETIC BUTTONS
+=================================================== */
+document.querySelectorAll('.btn-primary,.btn-ghost,.cta-nav,.btn-lang').forEach(btn=>{
+  btn.addEventListener('mousemove',e=>{
+    const r=btn.getBoundingClientRect();
+    const dx=(e.clientX-r.left-r.width/2)*0.3;
+    const dy=(e.clientY-r.top-r.height/2)*0.3;
+    btn.style.transform=`translate(${dx}px,${dy}px)`;
+  });
+  btn.addEventListener('mouseleave',()=>{ btn.style.transform='translate(0,0)'; });
+});
+
+/* ===================================================
+   CONTACT FORM — FORMSUBMIT AJAX
+=================================================== */
+const contactForm = document.getElementById('contact-form');
+const contactSubmitBtn = document.getElementById('contact-submit-btn');
+const contactBtnText = document.getElementById('contact-btn-text');
+const contactSuccess = document.getElementById('contact-success');
+let formSubmitted = false;
+
+contactForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(formSubmitted) return;
+
+  const name = document.getElementById('c-name').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  const msg = document.getElementById('c-msg').value.trim();
+
+  // Basic validation
+  if(!name || !email || !msg){
+    const errText = currentLang==='ar' ? 'يرجى ملء جميع الحقول.' : 'Please fill in all fields.';
+    contactBtnText.textContent = errText;
+    setTimeout(()=>{
+      contactBtnText.textContent = currentLang==='ar'
+        ? translations.ar['contact.submit']
+        : translations.en['contact.submit'];
+    }, 2500);
+    return;
+  }
+
+  // Email format validation
+  const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if(!emailReg.test(email)){
+    const errText = currentLang==='ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.';
+    contactBtnText.textContent = errText;
+    setTimeout(()=>{
+      contactBtnText.textContent = currentLang==='ar'
+        ? translations.ar['contact.submit']
+        : translations.en['contact.submit'];
+    }, 2500);
+    return;
+  }
+
+  // Submit state
+  const sendingText = currentLang==='ar' ? '⏳ جاري الإرسال…' : '⏳ Sending…';
+  contactBtnText.textContent = sendingText;
+  contactSubmitBtn.disabled = true;
+
+  try {
+    const formData = new FormData(contactForm);
+    const response = await fetch('https://formsubmit.co/ajax/ali.a.a.a.baraem@gmail.com', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: formData
+    });
+    const data = await response.json();
+
+    if(data.success || response.ok){
+      formSubmitted = true;
+      // Permanently disable the button
+      contactSubmitBtn.disabled = true;
+      contactBtnText.textContent = currentLang==='ar' ? '✔ تم الإرسال' : '✔ Sent';
+      // Show success message
+      contactSuccess.classList.add('show');
+      // Clear form fields
+      contactForm.reset();
+    } else {
+      throw new Error('Submission failed');
+    }
+  } catch(err){
+    // On error re-enable button
+    contactSubmitBtn.disabled = false;
+    const errText = currentLang==='ar'
+      ? '✘ حدث خطأ. حاول مجدداً.'
+      : '✘ Error occurred. Please try again.';
+    contactBtnText.textContent = errText;
+    setTimeout(()=>{
+      contactBtnText.textContent = currentLang==='ar'
+        ? translations.ar['contact.submit']
+        : translations.en['contact.submit'];
+    }, 3000);
+  }
+});
+
+/* ===================================================
+   LANGUAGE TOGGLE SYSTEM
+=================================================== */
+let currentLang = 'en';
+
+const translations = {
+  en: {
+    'nav.howItWorks': 'How It Works',
+    'nav.features': 'Features',
+    'nav.architecture': 'Architecture',
+    'nav.download': 'Download',
+    'nav.about': 'About',
+    'nav.contact': 'Contact',
+    'nav.getItFree': 'Get It Free',
+    'nav.langBtn': 'العربية',
+
+    'hero.tag': 'v1.0 Beta · 2026 · Built by Ali Adnan',
+    'hero.yourData': 'Your Data.',
+    'hero.sub': 'AES-256 encryption + steganography. Zero internet. Zero tracking. Zero compromise.',
+    'hero.downloadBtn': '⬇ Download for Windows (Free)',
+    'hero.seeHow': '↓ See How It Works',
+    'hero.langBtnLabel': 'العربية',
+    'hero.scroll': 'scroll',
+
+    'story.label': 'How It Works',
+    'story.title': 'Encryption you can <span class="accent">see</span>.',
+    'story.aes.heading': 'AES-256 Encryption',
+    'story.aes.p1': 'Type any text below and watch Umbrix transform it into unreadable cipher. AES-256 in EAX mode — the same standard used by governments and financial institutions.',
+    'story.aes.p2': 'Your key never leaves your device. No cloud. No server. No one else can decrypt this.',
+    'story.aes.inputLabel': 'Plaintext Input',
+    'story.aes.outputLabel': 'Simulated AES-256 Ciphertext',
+    'story.aes.inputPlaceholder': 'Type your secret message…',
+    'story.aes.btn': '⚡ Encrypt Simulation',
+    'story.stego.heading': 'LSB Steganography',
+    'story.stego.p1': 'Umbrix hides encrypted data inside the least-significant bits of image pixels — invisible to the naked eye, imperceptible to standard viewers.',
+    'story.stego.p2': 'Click a pixel below to see how binary data is injected. Carriers look identical before and after.',
+    'story.stego.gridLabel': 'Image Pixel Grid — hover to inspect',
+    'story.stego.bitLabel': 'Injected bit stream',
+
+    'features.label': 'Capabilities',
+    'features.title': 'Built for real <span class="accent">privacy</span>.',
+    'feat1.title': 'AES-256 · EAX Mode',
+    'feat1.desc': 'Authenticated encryption with associated data (AEAD). Provides both confidentiality and integrity — tampered ciphertext is rejected.',
+    'feat1.badge': 'Military-Grade',
+    'feat2.title': 'LSB Steganography',
+    'feat2.desc': 'Hide encrypted payloads in image LSBs. The carrier image remains visually identical. No metadata added. No watermark.',
+    'feat2.badge': 'Invisible Carrier',
+    'feat3.title': 'Fully Offline',
+    'feat3.desc': 'Zero internet required. Umbrix processes everything on your local file system. No telemetry, no analytics, no remote endpoints.',
+    'feat3.badge': 'Air-Gapped Safe',
+    'feat4.title': 'Password-Based KDF',
+    'feat4.desc': 'Keys are derived via SHA-256 password hashing. There is no key recovery. If you lose your password, the data is permanently inaccessible.',
+    'feat4.badge': 'Zero Recovery',
+    'feat5.title': 'Zero Tracking',
+    'feat5.desc': 'No crash reports. No usage analytics. No telemetry. Umbrix does not know you exist, and will never phone home.',
+    'feat5.badge': 'Privacy First',
+    'feat6.title': 'Local File System',
+    'feat6.desc': 'All operations read from and write to your local disk. Nothing is buffered in the cloud. Your files stay your files.',
+    'feat6.badge': 'Local Only',
+
+    'arch.label': 'System Design',
+    'arch.title': 'Security <span class="accent">architecture</span>.',
+    'arch.subtitle': 'Hover each layer to see how the pipeline works. Every stage is isolated — compromise one layer and the others remain intact.',
+    'arch1.name': '① Key Derivation Layer',
+    'arch1.tag': 'SHA-256 KDF',
+    'arch1.detail': 'Password → SHA-256 → 256-bit symmetric key. This operation is one-way: the key cannot be reversed to reveal your password. The derived key lives in memory only for the duration of the operation, then is discarded.',
+    'arch2.name': '② AES-256 Encryption Layer',
+    'arch2.tag': 'EAX Mode · AEAD',
+    'arch2.detail': 'The derived key encrypts your plaintext using AES-256-EAX — an authenticated encryption mode. A random nonce is generated per operation. The output is ciphertext + authentication tag. Any modification to the ciphertext causes tag verification to fail.',
+    'arch3.name': '③ Steganography Layer',
+    'arch3.tag': 'LSB Image Injection',
+    'arch3.detail': 'The binary-encoded ciphertext is distributed across the least-significant bits of RGB pixel channels in the carrier image. The perceptual change per pixel is ≤1/255 — invisible. A length header is prepended so the decoder knows how many bits to extract.',
+    'arch4.name': '④ File Output Layer',
+    'arch4.tag': 'Local Disk Write',
+    'arch4.detail': 'The stego-image is written to your local file system in its original format. No metadata is added. No file is transmitted. The only copy exists on your hardware. The original carrier and plaintext are never stored.',
+
+    'dl.label': 'Get Umbrix',
+    'dl.title': 'Download &amp; <span class="accent">Deploy</span>.',
+    'dl.tab.beta': 'v1.0 Beta',
+    'dl.tab.stable': 'Stable (Soon)',
+    'dl.name': 'Umbrix',
+    'dl.meta': 'v1.0 Beta · Python · 2026 · Ali Adnan',
+    'dl.badge1': '✔ Offline Only',
+    'dl.badge2': '✔ No Telemetry',
+    'dl.badge3': 'AES-256-EAX',
+    'dl.badge4': 'LSB Stego',
+    'dl.btn': '⬇ Download for Windows (Free)',
+    'dl.hash': 'SHA-256 integrity check · verify before running',
+
+    'about.label': 'The Developer',
+    'about.title': 'Privacy is a <span class="accent">right</span>.',
+    'about.name': 'Ali Adnan',
+    'about.role': 'Creator · Umbrix',
+    'about.bio': 'Security-focused developer building tools that put privacy back in the hands of the user. Umbrix is open in philosophy: no tracking, no monetization of your data, no subscription required.',
+    'about.emailLabel': 'Contact Email',
+    'about.p1': 'Umbrix was built from a simple conviction: <strong style="color:var(--text);">your private data should stay private</strong> — not backed up to someone else\'s server, not analyzed for advertising, not accessible to any party other than you.',
+    'about.p2': 'Modern software trends toward centralization and connectivity. Umbrix goes the other direction. Every design decision prioritizes offline operation, cryptographic correctness, and zero data exposure.',
+    'about.p3': 'The tool is intentionally simple. Complexity is the enemy of security.',
+    'about.stat1.val': '256',
+    'about.stat1.label': 'Bit Key',
+    'about.stat2.val': '0',
+    'about.stat2.label': 'Servers',
+    'about.stat3.val': '∞',
+    'about.stat3.label': 'Privacy',
+
+    'contact.label': 'Get In Touch',
+    'contact.title': 'Contact <span class="accent">Us</span>.',
+    'contact.sub': 'Have questions or feedback? We\'d love to hear from you.',
+    'contact.emailLabel': 'Direct Email',
+    'contact.responseLabel': 'Response Time',
+    'contact.responseVal': 'Within 24–48 hours',
+    'contact.name.label': 'Full Name',
+    'contact.name.placeholder': 'Your name',
+    'contact.email.label': 'Email Address',
+    'contact.email.placeholder': 'your@email.com',
+    'contact.message.label': 'Message',
+    'contact.message.placeholder': 'Your message…',
+    'contact.submit': '⟶ Send Message',
+    'contact.success': 'Thank you, your message has been successfully submitted.',
+
+    'disc.label': 'Legal Notice',
+    'disc.title': 'Disclaimer',
+    'disc.p1': '<strong>Important:</strong> Umbrix is provided for lawful personal privacy use only. The developer <strong>Ali Adnan</strong> accepts no liability for misuse, data loss, or any damages arising from use of this software.',
+    'disc.p2': '<strong>Password Loss:</strong> Encryption is irreversible without the correct password. There is no recovery mechanism. Lost passwords mean permanently inaccessible data. Keep your password secure and backed up in a safe location.',
+    'disc.p3': '<strong>No Warranty:</strong> This software is provided "as is" without warranty of any kind, express or implied. Use of Umbrix for any illegal activity — including unauthorized access to systems, hiding evidence of crimes, or circumventing lawful investigations — is strictly prohibited and entirely the responsibility of the user.',
+    'disc.p4': '<strong>Cryptography Regulations:</strong> Ensure your use of strong encryption is compliant with local laws in your jurisdiction. Export and use of cryptographic software may be regulated in certain countries.',
+
+    'footer.text': '© 2026 <span>Umbrix</span> · Built by <span>Ali Adnan</span> · v1.0 Beta · Privacy-First Offline Security',
+  },
+  ar: {
+    'nav.howItWorks': 'كيف يعمل',
+    'nav.features': 'المميزات',
+    'nav.architecture': 'البنية التقنية',
+    'nav.download': 'تنزيل',
+    'nav.about': 'من نحن',
+    'nav.contact': 'تواصل معنا',
+    'nav.getItFree': 'احصل عليه مجاناً',
+    'nav.langBtn': 'English',
+
+    'hero.tag': 'v1.0 بيتا · 2026 · من تطوير علي عدنان',
+    'hero.yourData': 'بياناتك.',
+    'hero.sub': 'تشفير AES-256 + إخفاء بيانات. بدون إنترنت. بدون تتبع. بدون تنازل.',
+    'hero.downloadBtn': '⬇ تنزيل للويندوز (مجاناً)',
+    'hero.seeHow': '↓ شاهد كيف يعمل',
+    'hero.langBtnLabel': 'English',
+    'hero.scroll': 'انزل',
+
+    'story.label': 'كيف يعمل',
+    'story.title': 'تشفير يمكنك <span class="accent">رؤيته</span>.',
+    'story.aes.heading': 'تشفير AES-256',
+    'story.aes.p1': 'اكتب أي نص أدناه وشاهد Umbrix يحوّله إلى شفرة غير مقروءة. معيار AES-256 بنمط EAX — نفس المعيار المستخدم من قِبل الحكومات والمؤسسات المالية.',
+    'story.aes.p2': 'مفتاحك لا يغادر جهازك أبداً. لا سحابة. لا خادم. لا أحد غيرك يستطيع فك التشفير.',
+    'story.aes.inputLabel': 'النص الأصلي',
+    'story.aes.outputLabel': 'نص مشفر AES-256 (محاكاة)',
+    'story.aes.inputPlaceholder': 'اكتب رسالتك السرية…',
+    'story.aes.btn': '⚡ محاكاة التشفير',
+    'story.stego.heading': 'إخفاء البيانات في البكسل',
+    'story.stego.p1': 'يخفي Umbrix البيانات المشفرة داخل أقل البتات أهمية في بكسلات الصورة — غير مرئية للعين المجردة، ولا يمكن اكتشافها بالطرق المعتادة.',
+    'story.stego.p2': 'حرّك المؤشر فوق بكسل لترى كيف يتم حقن البيانات الثنائية. الصور الحاملة تبدو متطابقة قبل وبعد العملية.',
+    'story.stego.gridLabel': 'شبكة بكسل الصورة — حرّك المؤشر للفحص',
+    'story.stego.bitLabel': 'تدفق البتات المُحقون',
+
+    'features.label': 'الإمكانيات',
+    'features.title': 'مصمم للخصوصية <span class="accent">الحقيقية</span>.',
+    'feat1.title': 'AES-256 · نمط EAX',
+    'feat1.desc': 'تشفير موثق مع بيانات مرتبطة (AEAD). يوفر السرية والنزاهة معاً — أي تلاعب بالنص المشفر يُرفض فوراً.',
+    'feat1.badge': 'مستوى عسكري',
+    'feat2.title': 'إخفاء بيانات LSB',
+    'feat2.desc': 'إخفاء الحمولات المشفرة في البتات الأقل أهمية للصور. الصورة الحاملة تبقى متطابقة بصرياً. لا بيانات وصفية. لا علامة مائية.',
+    'feat2.badge': 'حامل غير مرئي',
+    'feat3.title': 'يعمل بالكامل دون إنترنت',
+    'feat3.desc': 'لا يحتاج إلى إنترنت. يعالج Umbrix كل شيء على نظام الملفات المحلي. لا إحصاءات، لا تحليلات، لا نقاط طرفية عن بُعد.',
+    'feat3.badge': 'آمن للشبكات المعزولة',
+    'feat4.title': 'اشتقاق المفتاح من كلمة المرور',
+    'feat4.desc': 'يُشتق المفتاح عبر تجزئة SHA-256. لا يوجد استرداد للمفتاح. إذا فقدت كلمة مرورك، فإن البيانات تصبح غير قابلة للوصول بشكل دائم.',
+    'feat4.badge': 'لا استرداد',
+    'feat5.title': 'خصوصية تامة',
+    'feat5.desc': 'لا تقارير أعطال. لا إحصاءات استخدام. لا إرسال بيانات. Umbrix لا يعرف بوجودك، ولن يتواصل مع أي خادم أبداً.',
+    'feat5.badge': 'الخصوصية أولاً',
+    'feat6.title': 'نظام ملفات محلي',
+    'feat6.desc': 'جميع العمليات تقرأ وتكتب على قرصك المحلي. لا شيء يُخزَّن في السحابة. ملفاتك تبقى ملفاتك.',
+    'feat6.badge': 'محلي فقط',
+
+    'arch.label': 'تصميم النظام',
+    'arch.title': 'البنية <span class="accent">الأمنية</span>.',
+    'arch.subtitle': 'مرر المؤشر فوق كل طبقة لترى كيف تعمل. كل مرحلة معزولة — اختراق طبقة واحدة لا يؤثر على الباقي.',
+    'arch1.name': '① طبقة اشتقاق المفتاح',
+    'arch1.tag': 'SHA-256 KDF',
+    'arch1.detail': 'كلمة المرور ← SHA-256 ← مفتاح متماثل 256-بت. هذه العملية أحادية الاتجاه: لا يمكن عكس المفتاح للكشف عن كلمة مرورك. المفتاح المُشتق يعيش في الذاكرة فقط طوال مدة العملية، ثم يُتلف.',
+    'arch2.name': '② طبقة تشفير AES-256',
+    'arch2.tag': 'نمط EAX · AEAD',
+    'arch2.detail': 'يشفّر المفتاح المُشتق نصك الأصلي باستخدام AES-256-EAX — نمط تشفير موثق. يُنشأ nonce عشوائي لكل عملية. الناتج هو نص مشفر + علامة مصادقة. أي تعديل على النص المشفر يُفشل التحقق.',
+    'arch3.name': '③ طبقة إخفاء البيانات',
+    'arch3.tag': 'حقن صورة LSB',
+    'arch3.detail': 'يُوزَّع النص المشفر المُرمَّز ثنائياً عبر البتات الأقل أهمية من قنوات بكسل RGB في صورة الحامل. التغيير الإدراكي لكل بكسل ≤1/255 — غير مرئي. يُضاف رأس طول حتى يعرف المُفكك كم بت يستخرج.',
+    'arch4.name': '④ طبقة إخراج الملف',
+    'arch4.tag': 'كتابة على القرص المحلي',
+    'arch4.detail': 'تُكتب صورة ستيغانوغرافيا على نظام ملفاتك المحلي بتنسيقها الأصلي. لا بيانات وصفية تُضاف. لا ملف يُرسل. النسخة الوحيدة موجودة على جهازك. الحامل الأصلي والنص الأصلي لا يُخزَّنان أبداً.',
+
+    'dl.label': 'احصل على Umbrix',
+    'dl.title': 'تنزيل <span class="accent">ونشر</span>.',
+    'dl.tab.beta': 'v1.0 بيتا',
+    'dl.tab.stable': 'مستقر (قريباً)',
+    'dl.name': 'Umbrix',
+    'dl.meta': 'v1.0 بيتا · Python · 2026 · علي عدنان',
+    'dl.badge1': '✔ يعمل دون إنترنت',
+    'dl.badge2': '✔ لا إرسال بيانات',
+    'dl.badge3': 'AES-256-EAX',
+    'dl.badge4': 'LSB Stego',
+    'dl.btn': '⬇ تنزيل للويندوز (مجاناً)',
+    'dl.hash': 'فحص SHA-256 للتكامل · تحقق قبل التشغيل',
+
+    'about.label': 'المطور',
+    'about.title': 'الخصوصية <span class="accent">حق</span>.',
+    'about.name': 'علي عدنان',
+    'about.role': 'مطور · Umbrix',
+    'about.bio': 'مطور يركز على الأمن يبني أدوات تُعيد الخصوصية إلى يد المستخدم. Umbrix مفتوح المنهج: لا تتبع، لا استثمار في بياناتك، لا اشتراك مطلوب.',
+    'about.emailLabel': 'البريد الإلكتروني',
+    'about.p1': 'بُني Umbrix على قناعة بسيطة: <strong style="color:var(--text);">بياناتك الخاصة يجب أن تبقى خاصة</strong> — لا نسخ احتياطي على خادم شخص آخر، لا تحليل للإعلانات، لا وصول لأي طرف آخر غيرك.',
+    'about.p2': 'تتجه برامج اليوم نحو المركزية والترابط. Umbrix يسلك الطريق المعاكس. كل قرار في التصميم يُعطي الأولوية للتشغيل دون إنترنت، والصحة التشفيرية، وصفر تعرض للبيانات.',
+    'about.p3': 'الأداة بسيطة عمداً. التعقيد عدو الأمن.',
+    'about.stat1.val': '256',
+    'about.stat1.label': 'بت مفتاح',
+    'about.stat2.val': '0',
+    'about.stat2.label': 'خوادم',
+    'about.stat3.val': '∞',
+    'about.stat3.label': 'خصوصية',
+
+    'contact.label': 'تواصل معنا',
+    'contact.title': 'اتصل <span class="accent">بنا</span>.',
+    'contact.sub': 'هل لديك أسئلة أو ملاحظات؟ يسعدنا التواصل معك.',
+    'contact.emailLabel': 'البريد الإلكتروني المباشر',
+    'contact.responseLabel': 'وقت الاستجابة',
+    'contact.responseVal': 'خلال 24–48 ساعة',
+    'contact.name.label': 'الاسم الكامل',
+    'contact.name.placeholder': 'اسمك',
+    'contact.email.label': 'عنوان البريد الإلكتروني',
+    'contact.email.placeholder': 'بريدك@example.com',
+    'contact.message.label': 'الرسالة',
+    'contact.message.placeholder': 'رسالتك…',
+    'contact.submit': '⟶ إرسال الرسالة',
+    'contact.success': 'شكراً، تم إرسال رسالتك بنجاح.',
+
+    'disc.label': 'إشعار قانوني',
+    'disc.title': 'إخلاء المسؤولية',
+    'disc.p1': '<strong>مهم:</strong> يُقدَّم Umbrix للاستخدام الشخصي المشروع للخصوصية فقط. المطور <strong>علي عدنان</strong> لا يتحمل أي مسؤولية عن إساءة الاستخدام أو فقدان البيانات أو أي أضرار ناجمة عن استخدام هذا البرنامج.',
+    'disc.p2': '<strong>فقدان كلمة المرور:</strong> التشفير لا رجعة فيه بدون كلمة المرور الصحيحة. لا يوجد آلية استرداد. فقدان كلمات المرور يعني بيانات غير قابلة للوصول بشكل دائم. احتفظ بكلمة مرورك آمنة ومنسوخة في مكان آمن.',
+    'disc.p3': '<strong>لا ضمان:</strong> يُقدَّم هذا البرنامج "كما هو" بدون أي ضمان من أي نوع. استخدام Umbrix في أي نشاط غير قانوني — بما في ذلك الوصول غير المصرح به للأنظمة، أو إخفاء أدلة جرائم، أو التحايل على تحقيقات مشروعة — محظور صراحةً وتقع المسؤولية بالكامل على المستخدم.',
+    'disc.p4': '<strong>لوائح التشفير:</strong> تأكد من أن استخدامك للتشفير القوي متوافق مع القوانين المحلية في ولايتك القضائية. قد يخضع تصدير واستخدام برامج التشفير للتنظيم في بعض الدول.',
+
+    'footer.text': '© 2026 <span>Umbrix</span> · من تطوير <span>علي عدنان</span> · v1.0 بيتا · أمان محلي يُقدّم الخصوصية أولاً',
+  }
+};
+
+function setLang(lang){
+  const t = translations[lang];
+
+  // Update all data-i18n (textContent)
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.dataset.i18n;
+    if(t[key] !== undefined) el.textContent = t[key];
+  });
+
+  // Update all data-i18n-html (innerHTML)
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{
+    const key = el.dataset.i18nHtml;
+    if(t[key] !== undefined) el.innerHTML = t[key];
+  });
+
+  // Update all data-i18n-placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.dataset.i18nPlaceholder;
+    if(t[key] !== undefined) el.placeholder = t[key];
+  });
+
+  // Update lang buttons
+  document.getElementById('lang-btn-nav').textContent = t['nav.langBtn'];
+
+  // Update theme button
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  themeBtn.textContent = isDark
+    ? (lang==='ar' ? '☀ فاتح' : '☀ Light')
+    : (lang==='ar' ? '🌙 داكن' : '🌙 Dark');
+
+  // Update download button if not in loading state
+  if(!dlBtn.disabled){
+    dlBtnText.textContent = t['dl.btn'];
+  }
+
+  // Update contact button if not submitted
+  if(!formSubmitted && !contactSubmitBtn.disabled){
+    contactBtnText.textContent = t['contact.submit'];
+  }
+
+  // Update html lang and dir attributes
+  document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  // Swap typewriter phrases
+  phrases = phrasesSets[lang];
+  resetTypewriter();
+}
+
+function toggleLang(){
+  currentLang = currentLang === 'en' ? 'ar' : 'en';
+  setLang(currentLang);
+}
+</script>
+</body>
+</html>
