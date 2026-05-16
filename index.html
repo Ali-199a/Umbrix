@@ -1200,44 +1200,66 @@ contactForm.addEventListener('submit', async (e)=>{
   }
 
   // Submit state
-  const sendingText = currentLang==='ar' ? '⏳ جاري الإرسال…' : '⏳ Sending…';
-  contactBtnText.textContent = sendingText;
-  contactSubmitBtn.disabled = true;
+  const sendingText = currentLang === 'ar'
+  ? '⏳ جاري الإرسال…'
+  : '⏳ Sending…';
 
-  try {
-    const formData = new FormData(contactForm);
-    const response = await fetch('https://formsubmit.co/ajax/ali.a.a.a.baraem@gmail.com', {
+contactBtnText.textContent = sendingText;
+contactSubmitBtn.disabled = true;
+
+try {
+  const formData = new FormData(contactForm);
+
+  const response = await fetch(
+    'https://formsubmit.co/ajax/ali.a.a.a.baraem@gmail.com',
+    {
       method: 'POST',
-      headers: { 'Accept': 'application/json' },
+      headers: {
+        'Accept': 'application/json'
+      },
       body: formData
-    });
-    const data = await response.json();
-
-    if(data.success || response.ok){
-      formSubmitted = true;
-      // Permanently disable the button
-      contactSubmitBtn.disabled = true;
-      contactBtnText.textContent = currentLang==='ar' ? '✔ تم الإرسال' : '✔ Sent';
-      // Show success message
-      contactSuccess.classList.add('show');
-      // Clear form fields
-      contactForm.reset();
-    } else {
-      throw new Error('Submission failed');
     }
-  } catch(err){
-    // On error re-enable button
-    contactSubmitBtn.disabled = false;
-    const errText = currentLang==='ar'
-      ? '✘ حدث خطأ. حاول مجدداً.'
-      : '✘ Error occurred. Please try again.';
-    contactBtnText.textContent = errText;
-    setTimeout(()=>{
-      contactBtnText.textContent = currentLang==='ar'
-        ? translations.ar['contact.submit']
-        : translations.en['contact.submit'];
-    }, 3000);
+  );
+
+  // حماية من JSON crash (مهم جداً)
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('Invalid JSON response');
   }
+
+  if (response.ok && data?.success !== false) {
+    formSubmitted = true;
+
+    contactSubmitBtn.disabled = true;
+    contactBtnText.textContent = currentLang === 'ar'
+      ? '✔ تم الإرسال'
+      : '✔ Sent';
+
+    contactSuccess.classList.add('show');
+    contactForm.reset();
+
+  } else {
+    throw new Error(data?.message || 'Submission failed');
+  }
+
+} catch (err) {
+
+  console.log('Submit error:', err);
+
+  contactSubmitBtn.disabled = false;
+
+  contactBtnText.textContent = currentLang === 'ar'
+    ? '✘ حدث خطأ. حاول مجدداً.'
+    : '✘ Error occurred. Please try again.';
+
+  setTimeout(() => {
+    contactBtnText.textContent = currentLang === 'ar'
+      ? translations.ar['contact.submit']
+      : translations.en['contact.submit'];
+  }, 3000);
+}
 });
 
 /* ===================================================
